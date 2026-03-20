@@ -36,6 +36,7 @@
             margin-top: 2rem;
         }
 
+        /* Unified A4 Container */
         .resume-page {
             width: 210mm;
             min-height: 297mm;
@@ -47,6 +48,30 @@
             position: relative;
             margin-bottom: 2rem;
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Important for multi-page captures */
+        }
+
+        /* Logic for page breaks in print */
+        .page-break {
+            height: 0;
+            border-top: 1px dashed #cbd5e1;
+            margin: 20mm -20mm;
+            position: relative;
+            pointer-events: none;
+        }
+        
+        .page-break::after {
+            content: "PAGE BREAK (A4)";
+            position: absolute;
+            right: 20mm;
+            top: -10px;
+            background: #f1f5f9;
+            padding: 0 10px;
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 800;
         }
 
         /* Mobile Scale for Preview */
@@ -56,18 +81,6 @@
                 transform-origin: top center;
                 margin-bottom: calc(297mm * (1 - (100vw - 40px) / 210mm) * -1 + 20px);
             }
-        }
-
-        /* Rendering Helper - Hidden */
-        #render-temp {
-            position: absolute;
-            left: -9999px;
-            top: 0;
-            width: 210mm;
-            padding: 15mm 20mm;
-            background: white;
-            visibility: hidden;
-            min-height: 297mm;
         }
 
         /* Theme Styling */
@@ -93,11 +106,18 @@
 
         .violet-signature { color: #8b5cf6; font-weight: 700; font-size: 0.75rem; display: flex; align-items: center; gap: 4px; }
 
+        /* Custom Range Slider */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #e2e8f0; border-radius: 3px; }
+        input[type=range]::-webkit-slider-thumb { height: 16px; width: 16px; border-radius: 50%; background: #2563eb; cursor: pointer; -webkit-appearance: none; margin-top: -5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
         @media print {
             .no-print { display: none !important; }
-            body { background: white !important; }
-            .preview-section { padding: 0 !important; background: white !important; display: block !important; margin: 0 !important; }
-            .resume-page { box-shadow: none !important; margin: 0 !important; transform: none !important; width: 210mm !important; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; }
+            .preview-section { padding: 0 !important; background: white !important; display: block !important; margin: 0 !important; border: none !important; }
+            .resume-page { box-shadow: none !important; margin: 0 !important; transform: none !important; width: 210mm !important; border: none !important; padding: 15mm 20mm !important; min-height: 297mm; }
+            .page-break { page-break-after: always; border: none !important; height: 1px; visibility: hidden; margin: 0; }
+            .page-break::after { display: none; }
         }
     </style>
 </head>
@@ -109,8 +129,8 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             </div>
             <div>
-                <h1 class="text-lg font-black tracking-tighter text-slate-800">PROBUILD <span class="text-blue-600 italic text-sm">AI</span></h1>
-                <span class="violet-signature">(By Sathish 💜)</span>
+                <h1 class="text-lg font-black tracking-tighter text-slate-800">PROBUILD <span class="text-blue-600 italic text-sm">By</span></h1>
+                <span class="violet-signature">(Sathish 💜)</span>
             </div>
         </div>
         
@@ -119,8 +139,8 @@
                 <option value="theme-modern">✨ MODERN</option>
                 <option value="theme-executive">🎩 EXECUTIVE</option>
             </select>
-            <button onclick="downloadAsImage()" class="bg-violet-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-violet-700 transition">IMAGE</button>
-            <button onclick="window.print()" class="btn-primary hover:bg-blue-700 transition shadow-sm">PDF</button>
+            <button onclick="downloadAsImage()" class="bg-violet-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-violet-700 transition">IMAGE (ALL PAGES)</button>
+            <button onclick="window.print()" class="btn-primary hover:bg-blue-700 transition shadow-sm">PDF (A4)</button>
         </div>
     </header>
 
@@ -164,7 +184,7 @@
                     </section>
                 </div>
 
-                <!-- Work & Projects -->
+                <!-- Experience & Projects -->
                 <div class="grid grid-cols-1 gap-6">
                     <section class="glass-card">
                         <div class="flex justify-between items-center mb-4">
@@ -186,8 +206,19 @@
                 <!-- Skills & Education -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <section class="glass-card">
-                        <h3 class="input-group label text-blue-600 mb-4">Skills</h3>
-                        <input type="text" id="skillsInput" placeholder="Skill 1, Skill 2, Skill 3..." class="input-styled">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="input-group label text-blue-600 m-0">Skills</h3>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[9px] font-bold text-slate-400">UI SIZE</span>
+                                <input type="range" id="skillSizeSlider" min="7" max="14" value="9" class="w-20" oninput="state.skillSize = this.value; updatePreview();">
+                            </div>
+                        </div>
+                        <textarea 
+                            id="skillsInput" 
+                            placeholder="Skill 1, Skill 2, Skill 3..." 
+                            class="input-styled text-xs h-24 resize-y" 
+                            oninput="autoResize(this)"
+                        ></textarea>
                     </section>
                     <section class="glass-card">
                         <div class="flex justify-between items-center mb-4">
@@ -203,15 +234,16 @@
         <!-- Preview Section -->
         <div class="preview-section no-print">
             <div class="text-center">
-                <h2 class="text-slate-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1">Live Render Preview</h2>
-                <p class="text-slate-400 text-[10px] italic">Updates as you type</p>
+                <h2 class="text-slate-500 font-black text-[10px] uppercase tracking-[0.4em] mb-1">Live Render Preview (A4 Scale)</h2>
+                <p class="text-slate-400 text-[10px] italic">Flowing all sections in sequence</p>
             </div>
-            <div id="preview-pane" class="w-full flex flex-col items-center"></div>
+            <div id="preview-pane" class="w-full flex flex-col items-center">
+                <div id="resume-target" class="resume-page theme-modern">
+                    <div id="resume-content"></div>
+                </div>
+            </div>
         </div>
     </div>
-
-    <!-- For calculation -->
-    <div id="render-temp"></div>
 
     <script>
         const apiKey = "";
@@ -221,6 +253,7 @@
             projects: [],
             education: [],
             skills: [],
+            skillSize: 9,
             currentTheme: 'theme-modern'
         };
 
@@ -240,12 +273,20 @@
                     updatePreview();
                 });
             });
-            document.getElementById('skillsInput').addEventListener('input', e => {
+            
+            const skillArea = document.getElementById('skillsInput');
+            skillArea.addEventListener('input', e => {
                 state.skills = e.target.value.split(',').map(s => s.trim()).filter(s => s);
                 updatePreview();
             });
+            
             updatePreview();
         };
+
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight + 2) + 'px';
+        }
 
         function addEntry(type) {
             const id = Date.now();
@@ -282,8 +323,8 @@
                                   <textarea placeholder="Bullet points..." oninput="handleInput('experience', ${item.id}, 'desc', this.value)" class="input-styled h-20 text-xs">${item.desc}</textarea>`;
                     } else if (type === 'projects') {
                         inputs = `<input placeholder="Project Name" value="${item.name}" oninput="handleInput('projects', ${item.id}, 'name', this.value)" class="input-styled mb-2">
-                                  <input placeholder="Link (Github/Live)" value="${item.link}" oninput="handleInput('projects', ${item.id}, 'link', this.value)" class="input-styled mb-2">
-                                  <textarea placeholder="What did you build?" oninput="handleInput('projects', ${item.id}, 'desc', this.value)" class="input-styled h-20 text-xs">${item.desc}</textarea>`;
+                                  <input placeholder="Link" value="${item.link}" oninput="handleInput('projects', ${item.id}, 'link', this.value)" class="input-styled mb-2">
+                                  <textarea placeholder="Description" oninput="handleInput('projects', ${item.id}, 'desc', this.value)" class="input-styled h-20 text-xs">${item.desc}</textarea>`;
                     } else {
                         inputs = `<input placeholder="School" value="${item.school}" oninput="handleInput('education', ${item.id}, 'school', this.value)" class="input-styled mb-2">
                                   <div class="grid grid-cols-2 gap-2">
@@ -292,7 +333,7 @@
                                   </div>`;
                     }
                     
-                    div.innerHTML = inputs + `<button onclick="removeEntry('${type}', ${item.id})" class="absolute top-2 right-2 text-slate-400 hover:text-red-500">×</button>`;
+                    div.innerHTML = inputs + `<button onclick="removeEntry('${type}', ${item.id})" class="absolute top-2 right-2 text-slate-400">×</button>`;
                     container.appendChild(div);
                 });
             });
@@ -319,25 +360,13 @@
             btn.innerText = "✨ AI ASSIST";
         }
 
-        function createPage(num) {
-            const page = document.createElement('div');
-            page.className = `resume-page ${state.currentTheme}`;
-            page.innerHTML = `<div class="content-flow"></div><div class="absolute bottom-4 right-8 text-[8px] font-bold opacity-20 no-print">P.${num}</div>`;
-            return page;
-        }
-
         function updatePreview() {
-            const previewPane = document.getElementById('preview-pane');
-            const renderTemp = document.getElementById('render-temp');
-            renderTemp.className = `resume-page ${state.currentTheme}`;
-            previewPane.innerHTML = '';
+            const target = document.getElementById('resume-target');
+            const content = document.getElementById('resume-content');
             
-            let currentPage = createPage(1);
-            previewPane.appendChild(currentPage);
-            let flow = currentPage.querySelector('.content-flow');
-
-            // Header Content
-            const header = `
+            target.className = `resume-page ${state.currentTheme}`;
+            
+            let html = `
                 <div class="mb-6">
                     <h1 class="uppercase">${state.personal.name || 'Your Name'}</h1>
                     <div class="text-blue-600 font-bold text-lg uppercase tracking-tight">${state.personal.title || 'Profession'}</div>
@@ -349,64 +378,83 @@
                     </div>
                 </div>
             `;
-            flow.innerHTML = header;
 
             const sections = [];
-            if (state.personal.summary) sections.push({ title: 'Profile', html: `<p class="text-[11px] text-slate-700 leading-relaxed">${state.personal.summary}</p>` });
+            if (state.personal.summary) sections.push({ title: 'Profile', body: `<p class="text-[11px] text-slate-700 leading-relaxed">${state.personal.summary}</p>` });
             
             if (state.experience.length) {
-                let expHtml = '';
+                let exp = '';
                 state.experience.forEach(e => {
-                    expHtml += `<div class="mb-4">
+                    exp += `<div class="mb-4">
                         <div class="flex justify-between font-bold text-[12px]"><span class="text-slate-900">${e.role || 'Role'}</span><span class="text-blue-600">${e.company || 'Company'}</span></div>
                         <div class="text-[10px] text-slate-600 whitespace-pre-line leading-relaxed mt-1">${e.desc || ''}</div>
                     </div>`;
                 });
-                sections.push({ title: 'Professional Experience', html: expHtml });
+                sections.push({ title: 'Experience', body: exp });
             }
 
             if (state.projects.length) {
-                let projHtml = '';
+                let proj = '';
                 state.projects.forEach(p => {
-                    projHtml += `<div class="mb-4">
-                        <div class="flex justify-between font-bold text-[12px]"><span>${p.name || 'Project Name'}</span><span class="text-blue-500 font-normal text-[10px] italic">${p.link || ''}</span></div>
-                        <div class="text-[10px] text-slate-600 mt-1">${p.desc || ''}</div>
+                    proj += `<div class="mb-4">
+                        <div class="flex justify-between font-bold text-[11px]"><span>${p.name || 'Project Name'}</span><span class="text-blue-500 font-normal text-[9px] italic">${p.link || ''}</span></div>
+                        <div class="text-[10px] text-slate-600 mt-0.5">${p.desc || ''}</div>
                     </div>`;
                 });
-                sections.push({ title: 'Selected Projects', html: projHtml });
+                sections.push({ title: 'Projects', body: proj });
             }
 
             if (state.skills.length) {
-                sections.push({ title: 'Technical Skills', html: `<div class="flex flex-wrap gap-2">${state.skills.map(s => `<span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md text-[9px] font-bold text-slate-600 uppercase">${s}</span>`).join('')}</div>` });
+                sections.push({ 
+                    title: 'Technical Skills', 
+                    body: `<div class="flex flex-wrap gap-2">${state.skills.map(s => `<span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md font-bold text-slate-600 uppercase" style="font-size: ${state.skillSize}px">${s}</span>`).join('')}</div>` 
+                });
             }
 
             if (state.education.length) {
-                let edHtml = '';
+                let ed = '';
                 state.education.forEach(e => {
-                    edHtml += `<div class="mb-3">
+                    ed += `<div class="mb-3">
                         <div class="flex justify-between font-bold text-[11px]"><span>${e.degree || 'Degree'}</span><span class="opacity-50">${e.year || ''}</span></div>
                         <div class="text-[10px] uppercase tracking-wide text-slate-500 font-bold">${e.school || 'University'}</div>
                     </div>`;
                 });
-                sections.push({ title: 'Education', html: edHtml });
+                sections.push({ title: 'Education', body: ed });
             }
 
-            // Continuous Flow Logic
+            // Continuous Injection
             sections.forEach(sec => {
-                const wrap = document.createElement('div');
-                wrap.innerHTML = `<div class="section-title">${sec.title}</div>` + sec.html;
-                
-                // Test height
-                renderTemp.innerHTML = flow.innerHTML + wrap.outerHTML;
-                const pageHeightLimit = 1000; // Physical pixel height roughly for A4 content
-                
-                if (renderTemp.scrollHeight > pageHeightLimit) {
-                    currentPage = createPage(previewPane.children.length + 1);
-                    previewPane.appendChild(currentPage);
-                    flow = currentPage.querySelector('.content-flow');
-                }
-                flow.innerHTML += wrap.outerHTML;
+                html += `<div class="section-title">${sec.title}</div>` + sec.body;
             });
+
+            content.innerHTML = html;
+
+            // Detect and insert visual page breaks for A4 boundary
+            // 297mm approx 1122px at 96dpi, but we use 1080 for UI padding safety
+            const a4Px = 1080; 
+            content.querySelectorAll('.page-break').forEach(b => b.remove());
+            
+            const contentHeight = content.scrollHeight;
+            if (contentHeight > a4Px) {
+                let currentBreak = a4Px - 60;
+                while (currentBreak < contentHeight) {
+                    const breakDiv = document.createElement('div');
+                    breakDiv.className = 'page-break no-print';
+                    breakDiv.style.top = currentBreak + 'px';
+                    
+                    // Logic to avoid breaking in middle of section title
+                    const elements = Array.from(content.children);
+                    let targetElement = elements.find(el => el.offsetTop > currentBreak);
+                    
+                    if (targetElement) {
+                        targetElement.before(breakDiv);
+                    } else {
+                        content.appendChild(breakDiv);
+                    }
+                    
+                    currentBreak += a4Px;
+                }
+            }
 
             // Score update
             let total = 0;
@@ -415,18 +463,48 @@
             scoreWeights.forEach(w => {
                 const ok = w.check();
                 if (ok) total += w.val;
-                list.innerHTML += `<div class="px-2 py-1 rounded-md text-[9px] font-bold ${ok ? 'bg-green-900 text-green-200' : 'bg-slate-800 text-slate-500'}">${w.label}</div>`;
+                list.innerHTML += `<div class="px-2 py-1 rounded-md text-[9px] font-bold ${ok ? 'bg-green-900 text-green-200' : 'bg-slate-800 text-slate-400'}">${w.label}</div>`;
             });
             document.getElementById('scoreText').innerText = total;
         }
 
         async function downloadAsImage() {
-            const page = document.querySelector('.resume-page');
-            const canvas = await html2canvas(page, { scale: 3 });
-            const link = document.createElement('a');
-            link.download = `Resume_${state.personal.name || 'ProBuild'}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            const target = document.getElementById('resume-target');
+            const originalStyle = target.getAttribute('style');
+            
+            // Hide preview-only page breaks
+            const breaks = target.querySelectorAll('.page-break');
+            breaks.forEach(b => b.style.display = 'none');
+
+            // 1. Calculate how many pages we need
+            const totalHeight = target.scrollHeight;
+            const a4HeightPx = 1122.5; // Exactly 297mm at 96dpi
+            const numPages = Math.ceil(totalHeight / a4HeightPx);
+
+            // 2. Iterate through pages and capture slices
+            for (let i = 0; i < numPages; i++) {
+                const canvas = await html2canvas(target, {
+                    scale: 3, // High quality
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    y: i * a4HeightPx, // Offset for each page
+                    height: a4HeightPx,
+                    windowHeight: totalHeight,
+                    width: 793.7 // Exactly 210mm at 96dpi
+                });
+
+                const link = document.createElement('a');
+                link.download = `Resume_${state.personal.name || 'ProBuild'}_Page_${i + 1}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // Small delay to prevent browser download blocking
+                await new Promise(r => setTimeout(r, 300));
+            }
+            
+            // Restore visibility of markers
+            breaks.forEach(b => b.style.display = '');
+            target.setAttribute('style', originalStyle || '');
         }
     </script>
 </body>
