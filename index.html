@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ProBuild | AI Resume Architect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700&family=Lora:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; }
+        
+        /* Smooth interactions for touch */
+        * { -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f1f5f9; 
+            color: #1e293b; 
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        
+        .main-wrapper { 
+            display: flex; 
+            flex-direction: column; 
+            width: 100%; 
+            max-width: 1100px; 
+            margin: 0 auto; 
+        }
+        
+        .editor-section { padding: 1.5rem 1rem; width: 100%; }
+        
+        /* Preview Section positioned at the bottom */
+        .preview-section { 
+            width: 100%;
+            background: #cbd5e1; 
+            padding: 3rem 0.5rem; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 1.5rem;
+            border-top: 2px solid #94a3b8;
+            overflow: hidden;
+            margin-top: 2rem;
+        }
+
+        .resume-page-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            overflow: visible;
+        }
+
+        .resume-page {
+            width: 210mm;
+            min-height: 296mm;
+            background: white;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            padding: 20mm;
+            position: relative;
+            flex-shrink: 0;
+            color: #1e293b;
+            line-height: 1.5;
+            transform-origin: top center;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Essential Cross-Device Scaling Logic */
+        @media screen and (max-width: 220mm) {
+            .resume-page {
+                transform: scale(calc((100vw - 40px) / 210mm)); 
+                margin-bottom: calc(297mm * (1 - (100vw - 40px) / 210mm) * -1 + 20px);
+            }
+        }
+
+        #render-temp {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 210mm;
+            padding: 20mm;
+            background: white;
+            visibility: hidden;
+        }
+
+        /* --- MODERN THEME --- */
+        .theme-modern .section-title { 
+            font-weight: 800; 
+            color: #2563eb; 
+            border-bottom: 2px solid #eff6ff; 
+            margin: 1.5rem 0 0.75rem; 
+            text-transform: uppercase; 
+            font-size: 0.75rem; 
+            letter-spacing: 0.15em; 
+        }
+        .theme-modern h1 { font-weight: 800; font-size: 2.75rem; color: #0f172a; line-height: 1; letter-spacing: -0.04em; margin-bottom: 0.5rem; }
+        .theme-modern .contact-link { color: #2563eb; text-decoration: none; font-weight: 600; }
+
+        /* --- EXECUTIVE THEME --- */
+        .theme-executive { font-family: 'Lora', serif; }
+        .theme-executive .section-title { 
+            font-family: 'Playfair Display', serif; 
+            font-size: 1.25rem; 
+            color: #854d0e; 
+            border-bottom: 1px solid #ca8a04; 
+            margin-top: 1.75rem; 
+            margin-bottom: 1rem;
+            text-align: center; 
+        }
+        .theme-executive h1 { color: #422006; text-align: center; font-size: 3rem; font-family: 'Playfair Display', serif; margin-bottom: 0.5rem; }
+        .theme-executive .contact-info-row { justify-content: center; text-align: center; }
+        .theme-executive .contact-link { color: #854d0e; text-decoration: none; font-style: italic; border-bottom: 1px solid #fde047; }
+
+        /* UI Styling Components */
+        .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.25rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+        .input-group label { display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem; }
+        .input-styled { width: 100%; padding: 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; background: #fff; transition: all 0.2s; -webkit-appearance: none; }
+        .input-styled:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .btn-primary { background: #2563eb; color: white; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; font-size: 0.9rem; transition: all 0.2s; border: none; cursor: pointer; }
+        .btn-primary:active { transform: scale(0.97); }
+        
+        .opt-item { display: flex; align-items: start; gap: 0.75rem; font-size: 0.8rem; padding: 0.6rem; border-radius: 10px; transition: all 0.3s; }
+        .opt-item.complete { opacity: 0.5; background: #064e3b; color: #ecfdf5; }
+
+        /* Violet Branding */
+        .violet-signature {
+            color: #8b5cf6;
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: -0.025em;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            animation: pulse-soft 3s infinite ease-in-out;
+        }
+        @keyframes pulse-soft {
+            0%, 100% { opacity: 1; transform: translateY(0); }
+            50% { opacity: 0.8; transform: translateY(-1px); }
+        }
+
+        @media print {
+            @page { size: A4; margin: 0; }
+            .no-print { display: none !important; }
+            body { background: white !important; margin: 0 !important; padding: 0 !important; }
+            .main-wrapper { display: block !important; max-width: none !important; }
+            .editor-section { display: none !important; }
+            .preview-section { background: white !important; padding: 0 !important; width: 100% !important; overflow: visible !important; display: block !important; margin-top: 0 !important; border: none !important; }
+            .resume-page-container { display: block !important; width: 100% !important; }
+            .resume-page { 
+                box-shadow: none !important; 
+                margin: 0 !important; 
+                transform: none !important; 
+                width: 210mm !important;
+                height: 297mm !important;
+                page-break-after: always !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="no-print bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 sm:px-8 py-4 flex flex-wrap justify-between items-center sticky top-0 z-50 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                <h1 class="text-xl font-black tracking-tighter text-slate-800 leading-none">PROBUILD <span class="text-blue-600 italic">AI</span></h1>
+                <span class="violet-signature font-bold">(By Sathish 💜)</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <select id="themeDropdown" onchange="state.currentTheme = this.value; updatePreview();" class="flex-1 sm:flex-none bg-slate-100 border-none rounded-xl px-4 py-2 text-xs font-bold outline-none cursor-pointer hover:bg-slate-200 transition">
+                <option value="theme-modern">✨ MODERN STYLE</option>
+                <option value="theme-executive">🎩 EXECUTIVE STYLE</option>
+            </select>
+            <button onclick="window.print()" class="btn-primary shadow-lg shadow-blue-100 flex-1 sm:flex-none">EXPORT PDF</button>
+        </div>
+    </header>
+
+    <div class="main-wrapper">
+        <!-- Editor Section (Top) -->
+        <div class="editor-section">
+            <div class="space-y-8">
+                <!-- Score Card Row -->
+                <div class="glass-card bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                    <div>
+                        <p class="text-[10px] uppercase font-black text-blue-400 tracking-widest">ATS Match Score</p>
+                        <div class="flex items-end gap-2 mt-2">
+                            <h2 class="text-5xl font-black leading-none text-blue-50"><span id="scoreText">0</span></h2>
+                            <span class="text-slate-500 text-xl font-bold">/ 100</span>
+                        </div>
+                    </div>
+                    <div id="optimizationList" class="flex flex-wrap gap-2 max-w-xl">
+                        <!-- Score items rendered here -->
+                    </div>
+                </div>
+
+                <!-- Input Groups -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <section class="glass-card">
+                        <h3 class="input-group label mb-6 text-blue-600 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-600"></span> Contact & Socials
+                        </h3>
+                        <div class="grid grid-cols-1 gap-5">
+                            <div class="input-group"><label>Full Name</label><input type="text" data-field="name" placeholder="Enter name" class="input-styled"></div>
+                            <div class="input-group"><label>Role Title</label><input type="text" data-field="title" placeholder="e.g. Software Engineer" class="input-styled"></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="input-group"><label>Email</label><input type="email" data-field="email" placeholder="email@address.com" class="input-styled"></div>
+                                <div class="input-group"><label>Phone</label><input type="text" data-field="phone" placeholder="+1..." class="input-styled"></div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div class="input-group"><label>LinkedIn</label><input type="url" data-field="linkedin" placeholder="URL" class="input-styled"></div>
+                                <div class="input-group"><label>GitHub</label><input type="url" data-field="github" placeholder="URL" class="input-styled"></div>
+                                <div class="input-group"><label>Portfolio</label><input type="url" data-field="portfolio" placeholder="URL" class="input-styled"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="glass-card flex flex-col">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="input-group label m-0 text-blue-600 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-600"></span> Summary</h3>
+                            <button onclick="generateAISummary()" id="aiBtn" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black hover:bg-blue-700 transition">✨ AI GENERATE</button>
+                        </div>
+                        <textarea id="summaryTextarea" data-field="summary" class="input-styled flex-grow" style="min-height: 150px;" placeholder="Tell your professional story..."></textarea>
+                    </section>
+                </div>
+
+                <div class="grid grid-cols-1 gap-8">
+                    <section class="glass-card">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="input-group label m-0 text-blue-600 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-600"></span> Experience</h3>
+                            <button onclick="addEntry('experience')" class="text-blue-600 text-[10px] font-black hover:bg-blue-50 px-3 py-1 rounded-lg transition border border-blue-100">+ ADD POSITION</button>
+                        </div>
+                        <div id="experienceInputs" class="space-y-6"></div>
+                    </section>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <section class="glass-card">
+                            <h3 class="input-group label mb-4 text-blue-600 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-600"></span> Key Skills</h3>
+                            <input type="text" id="skillsInput" placeholder="Separated by commas (e.g. React, Python, AWS)" class="input-styled">
+                        </section>
+
+                        <section class="glass-card">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="input-group label m-0 text-blue-600 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-600"></span> Education</h3>
+                                <button onclick="addEntry('education')" class="text-blue-600 text-[10px] font-black hover:bg-blue-50 px-3 py-1 rounded-lg transition border border-blue-100">+ ADD EDUCATION</button>
+                            </div>
+                            <div id="educationInputs" class="space-y-6"></div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Pane (Bottom) -->
+        <div class="preview-section no-print">
+            <div class="text-center mb-8">
+                <h2 class="text-slate-500 font-black text-[12px] uppercase tracking-[0.5em] mb-2">Live Render Preview</h2>
+                <p class="text-slate-400 text-xs font-medium italic">Your resume updates instantly as you type</p>
+            </div>
+            <div id="preview-pane" class="w-full flex flex-col items-center"></div>
+        </div>
+    </div>
+
+    <!-- Hidden measurement container -->
+    <div id="render-temp"></div>
+
+    <script>
+        const apiKey = "";
+        const state = {
+            personal: { name: '', title: '', email: '', phone: '', summary: '', linkedin: '', github: '', portfolio: '' },
+            experience: [],
+            education: [],
+            skills: [],
+            currentTheme: 'theme-modern'
+        };
+
+        const optimizationSteps = [
+            { id: 'name', label: 'Name', score: 5, check: () => !!state.personal.name },
+            { id: 'contact', label: 'Contact', score: 10, check: () => state.personal.email && state.personal.phone },
+            { id: 'social', label: 'Socials', score: 15, check: () => state.personal.linkedin || state.personal.github || state.personal.portfolio },
+            { id: 'summary', label: 'Summary', score: 20, check: () => state.personal.summary.length > 60 },
+            { id: 'exp', label: 'Experience', score: 30, check: () => state.experience.length >= 2 },
+            { id: 'skills', label: 'Skills', score: 20, check: () => state.skills.length >= 8 }
+        ];
+
+        window.onload = () => {
+            document.querySelectorAll('[data-field]').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    state.personal[e.target.dataset.field] = e.target.value;
+                    updatePreview();
+                });
+            });
+            document.getElementById('skillsInput').addEventListener('input', (e) => {
+                state.skills = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                updatePreview();
+            });
+            updatePreview();
+        };
+
+        function addEntry(type) {
+            const id = Date.now();
+            if (type === 'experience') state.experience.push({ id, company: '', role: '', desc: '' });
+            else state.education.push({ id, school: '', degree: '', year: '' });
+            renderInputs();
+            updatePreview();
+        }
+
+        function handleInput(type, id, field, val) {
+            const item = state[type].find(i => i.id === id);
+            if (item) { item[field] = val; updatePreview(); }
+        }
+
+        function removeEntry(type, id) {
+            state[type] = state[type].filter(i => i.id !== id);
+            renderInputs();
+            updatePreview();
+        }
+
+        function renderInputs() {
+            ['experience', 'education'].forEach(type => {
+                const container = document.getElementById(`${type}Inputs`);
+                container.innerHTML = '';
+                state[type].forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'p-5 bg-slate-50 border rounded-2xl relative shadow-sm border-slate-200';
+                    let html = type === 'experience' ? 
+                        `<input type="text" placeholder="Company Name" value="${item.company}" oninput="handleInput('experience', ${item.id}, 'company', this.value)" class="input-styled mb-3 font-bold">
+                         <input type="text" placeholder="Role / Position" value="${item.role}" oninput="handleInput('experience', ${item.id}, 'role', this.value)" class="input-styled mb-3">
+                         <textarea placeholder="Key accomplishments and responsibilities..." oninput="handleInput('experience', ${item.id}, 'desc', this.value)" class="input-styled h-32 text-xs leading-relaxed">${item.desc}</textarea>` :
+                        `<input type="text" placeholder="University/Institution" value="${item.school}" oninput="handleInput('education', ${item.id}, 'school', this.value)" class="input-styled mb-3">
+                         <div class="grid grid-cols-2 gap-3">
+                            <input type="text" placeholder="Degree" value="${item.degree}" oninput="handleInput('education', ${item.id}, 'degree', this.value)" class="input-styled">
+                            <input type="text" placeholder="Year" value="${item.year}" oninput="handleInput('education', ${item.id}, 'year', this.value)" class="input-styled">
+                         </div>`;
+                    div.innerHTML = html + `<button onclick="removeEntry('${type}', ${item.id})" class="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors p-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>`;
+                    container.appendChild(div);
+                });
+            });
+        }
+
+        async function generateAISummary() {
+            const btn = document.getElementById('aiBtn');
+            const role = state.personal.title;
+            const skills = state.skills.join(', ');
+            const experience = state.experience.map(e => `${e.role} at ${e.company}`).join(', ');
+
+            if (!role) return alert("Please enter your Role Title first.");
+            
+            btn.innerText = "CRAFTING...";
+            btn.disabled = true;
+            
+            try {
+                const prompt = `Task: Write a powerful, high-impact professional resume summary.
+                Constraints: Strictly 2 sentences. No fluff. Use strong action verbs.
+                Input Data:
+                - Role: ${role}
+                - Skills: ${skills}
+                - Experience: ${experience}
+                
+                Goal: Combine these specific details into a punchy summary that highlights expertise and value. Focus on output and mastery.`;
+                
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text.trim();
+                
+                state.personal.summary = text;
+                document.getElementById('summaryTextarea').value = text;
+                updatePreview();
+            } catch (e) { 
+                console.error(e);
+                alert("Failed to generate summary. Please check your connection.");
+            }
+            btn.innerText = "✨ AI GENERATE";
+            btn.disabled = false;
+        }
+
+        function formatLink(url) {
+            if (!url) return '';
+            return url.startsWith('http') ? url : `https://${url}`;
+        }
+
+        function updatePreview() {
+            const temp = document.getElementById('render-temp');
+            const previewPane = document.getElementById('preview-pane');
+            
+            temp.className = `resume-page ${state.currentTheme}`;
+            
+            const social = [];
+            if (state.personal.linkedin) social.push(`<a href="${formatLink(state.personal.linkedin)}" class="contact-link" target="_blank">LinkedIn</a>`);
+            if (state.personal.github) social.push(`<a href="${formatLink(state.personal.github)}" class="contact-link" target="_blank">GitHub</a>`);
+            if (state.personal.portfolio) social.push(`<a href="${formatLink(state.personal.portfolio)}" class="contact-link" target="_blank">Portfolio</a>`);
+
+            const headerHtml = `
+                <div class="mb-6">
+                    <h1 class="uppercase tracking-tight">${state.personal.name || 'YOUR NAME'}</h1>
+                    <p class="role-subtitle text-blue-600 font-bold text-xl uppercase tracking-tighter">${state.personal.title || 'ROLE TITLE'}</p>
+                    <div class="contact-info-row text-[10px] mt-3 opacity-70 font-bold uppercase tracking-[0.15em] flex flex-wrap gap-x-4">
+                        ${[state.personal.email, state.personal.phone].filter(Boolean).join(' • ')}
+                    </div>
+                    <div class="contact-info-row text-[10px] mt-1 font-bold uppercase tracking-[0.1em] flex flex-wrap gap-x-4">
+                        ${social.join(' <span class="opacity-20">•</span> ')}
+                    </div>
+                </div>
+            `;
+
+            const sections = [];
+            if (state.personal.summary) {
+                sections.push({ title: 'Profile', html: `<p class="text-[12px] text-slate-700 leading-relaxed">${state.personal.summary}</p>` });
+            }
+            
+            state.experience.forEach((e, i) => {
+                sections.push({ 
+                    title: i === 0 ? 'Experience' : '', 
+                    html: `<div class="mb-5">
+                            <div class="flex justify-between font-bold text-[13px] mb-1">
+                                <span class="text-slate-900">${e.role || 'Position'}</span> 
+                                <span class="text-blue-600">${e.company || 'Company'}</span>
+                            </div>
+                            <div class="text-[11px] whitespace-pre-line text-slate-600 leading-relaxed">${e.desc || ''}</div>
+                           </div>` 
+                });
+            });
+
+            if (state.skills.length) {
+                sections.push({ 
+                    title: 'Core Skills', 
+                    html: `<div class="flex flex-wrap gap-2">${state.skills.map(s => `<span class="bg-slate-100 border border-slate-200 px-3 py-1 rounded-lg text-[10px] font-bold text-slate-700 uppercase tracking-wide">${s}</span>`).join('')}</div>` 
+                });
+            }
+
+            state.education.forEach((e, i) => {
+                sections.push({ 
+                    title: i === 0 ? 'Education' : '', 
+                    html: `<div class="mb-4">
+                            <div class="flex justify-between font-bold text-[12px] text-slate-800">
+                                <span>${e.degree || 'Degree'}</span> 
+                                <span class="opacity-40">${e.year || ''}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">${e.school || 'Institution'}</div>
+                           </div>` 
+                });
+            });
+
+            previewPane.innerHTML = '';
+            let currentPage = createPage(1);
+            previewPane.appendChild(currentPage);
+            let currentContent = currentPage.querySelector('.content-area');
+            currentContent.innerHTML = headerHtml;
+
+            sections.forEach(sec => {
+                const secDiv = document.createElement('div');
+                if (sec.title) secDiv.innerHTML = `<div class="section-title">${sec.title}</div>`;
+                secDiv.innerHTML += sec.html;
+                
+                temp.innerHTML = currentContent.innerHTML + secDiv.outerHTML;
+                
+                if (temp.scrollHeight > 940) {
+                    currentPage = createPage(previewPane.children.length + 1);
+                    previewPane.appendChild(currentPage);
+                    currentContent = currentPage.querySelector('.content-area');
+                    if (!sec.title) {
+                        const previousTitle = sections.slice(0, sections.indexOf(sec)).reverse().find(s => s.title)?.title;
+                        currentContent.innerHTML = `<div class="section-title">${previousTitle} (cont.)</div>`;
+                    }
+                }
+                currentContent.innerHTML += secDiv.outerHTML;
+            });
+
+            let score = 0;
+            const list = document.getElementById('optimizationList');
+            list.innerHTML = '';
+            optimizationSteps.forEach(s => {
+                const ok = s.check();
+                if (ok) score += s.score;
+                list.innerHTML += `<div class="opt-item ${ok ? 'complete' : 'bg-slate-700 text-slate-400'}">
+                    <span class="font-bold">${ok ? '✓' : '○'}</span>
+                    <span class="whitespace-nowrap">${s.label}</span>
+                </div>`;
+            });
+            document.getElementById('scoreText').innerText = score;
+        }
+
+        function createPage(num) {
+            const container = document.createElement('div');
+            container.className = 'resume-page-container';
+            const page = document.createElement('div');
+            page.className = `resume-page ${state.currentTheme}`;
+            page.innerHTML = `<div class="content-area"></div>
+                              <div class="absolute bottom-6 right-10 text-[9px] font-black opacity-20 no-print uppercase tracking-widest">Page ${num}</div>`;
+            container.appendChild(page);
+            return container;
+        }
+    </script>
+</body>
+</html>
